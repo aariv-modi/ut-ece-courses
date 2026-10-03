@@ -1,0 +1,41 @@
+---
+import { generated, base, stats } from '../lib/courses';
+const { compact = false } = Astro.props;
+---
+{compact ? (
+  <div class="docs-footer">
+    Unofficial student project, not affiliated with or endorsed by The University of Texas at Austin. Data compiled from public UT sources on {generated}.
+    Always confirm requirements with your advisor and the official catalog.
+  </div>
+) : (
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="cols">
+        <div>
+          <a class="brand" href={base}><span class="mark">ECE</span><span class="name">UT ECE Course Explorer</span></a>
+          <p style="margin-top:12px;max-width:30ch">What every undergraduate UT Austin Electrical and Computer Engineering course actually teaches, built from the public syllabi.</p>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <a href={`${base}#courses`}>All {stats.courses} courses</a>
+          <a href={`${base}topics/`}>Search by topic</a>
+          <a href={`${base}about/`}>About &amp; sources</a>
+        </div>
+        <div>
+          <h4>Sources</h4>
+          <a href="https://utdirect.utexas.edu/apps/student/coursedocs/nlogon/">Syllabi &amp; CVs repository</a>
+          <a href="https://catalog.utexas.edu/general-information/coursesatoz/ece/">UT catalog: ECE courses</a>
+          <a href="https://utdirect.utexas.edu/apps/registrar/course_schedule/">UT Registrar course schedule</a>
+        </div>
+        <div>
+          <h4>Window</h4>
+          <p>Fall 2025, Spring 2026, Fall 2026 and the planned Spring 2027. Summers are never included.</p>
+        </div>
+      </div>
+      <div class="legal">
+        Unofficial student project, not affiliated with or endorsed by The University of Texas at Austin. Data compiled from public UT sources on {generated}.
+        Always confirm requirements with your advisor and the official catalog.
+      </div>
+    </div>
+  </footer>
+)}

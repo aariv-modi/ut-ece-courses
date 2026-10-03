@@ -1,0 +1,44 @@
+---
+const base = import.meta.env.BASE_URL;
+---
+<div class="hsearch" id="hsearch" data-base={base}>
+  <input type="search" id="hs-input" placeholder="Search" autocomplete="off" aria-label="Search courses" aria-controls="hs-results" />
+  <kbd>/</kbd>
+  <div class="hresults" id="hs-results" role="listbox" hidden></div>
+</div>
+<script is:inline>
+  (function () {
+    var root = document.getElementById('hsearch'), input = document.getElementById('hs-input'), box = document.getElementById('hs-results');
+    var base = root.dataset.base, courses = null, sel = -1;
+    function load() {
+      if (courses) return Promise.resolve();
+      return fetch(base + 'courses.json').then(function (r) { return r.json(); }).then(function (j) { courses = j; }).catch(function () { courses = []; });
+    }
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function render() {
+      var q = input.value.trim().toLowerCase();
+      if (!q || !courses) { box.hidden = true; return; }
+      var hits = courses.filter(function (c) { return (c.code + ' ' + c.title).toLowerCase().indexOf(q) >= 0 || c.code.replace(/\s/g, '').toLowerCase().indexOf(q.replace(/\s/g, '')) >= 0; }).slice(0, 8);
+      var html = hits.map(function (c) { return '<a role="option" href="' + c.url + '"><span class="c">' + esc(c.code) + '</span><span class="t">' + esc(c.title) + '</span></a>'; }).join('');
+      html += '<a class="more" role="option" href="' + base + 'topics/?q=' + encodeURIComponent(input.value.trim()) + '">Search topics for “' + esc(input.value.trim()) + '” →</a>';
+      box.innerHTML = html; box.hidden = false; sel = -1;
+    }
+    function move(d) {
+      var items = box.querySelectorAll('a'); if (!items.length) return;
+      if (sel >= 0) items[sel].classList.remove('sel');
+      sel = (sel + d + items.length) % items.length; items[sel].classList.add('sel'); items[sel].scrollIntoView({ block: 'nearest' });
+    }
+    input.addEventListener('focus', function () { load().then(render); });
+    input.addEventListener('input', function () { load().then(render); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Escape') { box.hidden = true; input.blur(); }
+      else if (e.key === 'Enter') { var items = box.querySelectorAll('a'); var t = items[sel >= 0 ? sel : 0]; if (t) { e.preventDefault(); location.href = t.getAttribute('href'); } }
+    });
+    document.addEventListener('click', function (e) { if (!root.contains(e.target)) box.hidden = true; });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); input.focus(); }
+    });
+  })();
+</script>

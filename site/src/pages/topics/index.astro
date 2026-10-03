@@ -1,0 +1,62 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import { base, stats } from '../../lib/courses';
+---
+<Docs title="Search by topic · UT ECE Course Explorer" description="Find every UT ECE course whose syllabus covers a topic." active="topics">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href={base}>Home</a><span class="sep">/</span><span>Search by topic</span></nav>
+  <h1>Which course teaches…?</h1>
+  <p class="lede">Search all {stats.topics.toLocaleString('en-US')} topics extracted from the syllabi.</p>
+  <div class="callout">
+    <p><span class="tag explicit" style="margin-left:0">stated</span> means the syllabus names the topic; <span class="tag derived" style="margin-left:0">from textbook</span> means it's inferred from the chapters the syllabus assigns.
+    If a topic isn't found, the syllabus may simply not list it.</p>
+  </div>
+  <input type="search" id="tq" class="big-search" placeholder="e.g. cache coherence, MESI, dynamic programming, TCP…" autofocus />
+  <p class="muted small" id="status" style="margin-top:10px"></p>
+  <div id="results"></div>
+  <script define:vars={{ base }} type="module">
+    import MiniSearch from 'https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/es/index.js';
+    const idx = await (await fetch(`${base}search-index.json`)).json();
+    const ms = new MiniSearch({
+      fields: ['topic', 'evidence', 'aliases', 'title'],
+      storeFields: ['course', 'title', 'instructor', 'term', 'topic', 'kind', 'evidence', 'url'],
+      searchOptions: { prefix: (t) => t.length >= 3, fuzzy: (t) => (t.length >= 7 ? 0.15 : false), boost: { topic: 3, aliases: 2 } },
+    });
+    ms.addAll(idx);
+    const q = document.getElementById('tq'), out = document.getElementById('results'), st = document.getElementById('status');
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    function run() {
+      const t = q.value.trim();
+      out.innerHTML = '';
+      if (t.length < 2) { st.textContent = ''; return; }
+      const hits = ms.search(t, { combineWith: 'AND' }).map((h) => {
+        // flag results that matched only through the related-term list, not the syllabus's own wording
+        h.viaAlias = Object.values(h.match).every((fields) => fields.length && fields.every((f) => f === 'aliases'));
+        return h;
+      });
+      const g = new Map();
+      for (const h of hits) {
+        if (!g.has(h.course)) g.set(h.course, { title: h.title, url: h.url, items: [] });
+        g.get(h.course).items.push(h);
+      }
+      st.textContent = g.size
+        ? `${g.size} course${g.size > 1 ? 's' : ''} matched`
+        : "No syllabus lists this topic. That doesn't prove it isn't covered.";
+      for (const [code, v] of g) {
+        const card = document.createElement('div');
+        card.className = 'card hit';
+        const seen = new Set();
+        const lines = v.items.sort((a, b) => a.viaAlias - b.viaAlias)
+          .filter((i) => { const k = i.instructor + i.topic; if (seen.has(k)) return false; seen.add(k); return true; })
+          .slice(0, 6)
+          .map((i) =>
+            `<div class="hitline"><strong>${esc(i.topic)}</strong> <span class="tag ${i.kind === 'explicit' ? 'explicit' : 'derived'}">${i.kind === 'explicit' ? 'stated' : i.kind === 'possible' ? 'possible' : 'from textbook'}</span> <span class="muted">· ${esc(i.instructor)}, ${esc(i.term)}</span>${i.viaAlias ? '<div class="small" style="color:var(--amber)">Related-term match: the syllabus does not use your exact words, only the topic above.</div>' : ''}<blockquote class="ev">${i.kind === 'textbook_chapter' ? esc(i.evidence) : '“' + esc(i.evidence) + '”'}</blockquote></div>`)
+          .join('');
+        card.innerHTML = `<h3><a href="${v.url.replace('__BASE__', base)}">${esc(code)}: ${esc(v.title)}</a></h3>${lines}`;
+        out.appendChild(card);
+      }
+    }
+    const initial = new URLSearchParams(location.search).get('q');
+    if (initial) { q.value = initial; run(); }
+    q.addEventListener('input', run);
+  </script>
+</Docs>

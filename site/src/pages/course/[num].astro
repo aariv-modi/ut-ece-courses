@@ -1,0 +1,185 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import data from '../../data/dataset.json';
+import { base, pill } from '../../lib/courses';
+export function getStaticPaths() {
+  return Object.values(data.courses).map((c: any) => ({ params: { num: c.number.toLowerCase() }, props: { c } }));
+}
+const { c } = Astro.props;
+const LEVEL: Record<string, string> = {
+  weekly_schedule: 'Week-by-week schedule', topic_list: 'Topic list', chapters_only: 'Textbook chapters only (topics derived from the book)',
+  minimal: 'Little or no topic detail in the public syllabus',
+};
+const shown = c.instructors ?? [];
+const m = c.matrix;
+const big = !!m && m.columns.length > 6;   // many sections of one course: course-level topic list instead of a wide table
+const KIND_LABEL: Record<string, string> = { stated: 'Stated in the syllabus', possible: 'Possible: the syllabus hedges it (may include / if time permits)', textbook: 'Inferred from the textbook chapters the syllabus assigns', textbook_uncertain: 'Inferred from a textbook table of contents (mapping uncertain)' };
+const p = pill(c);
+const toc = [{ id: 'overview', label: 'Overview' }, ...(shown.length ? [{ id: 'instructors', label: 'Instructors & syllabi' }] : []), ...(m ? [{ id: 'topics', label: 'Topics by instructor' }] : [])];
+---
+<Docs title={`${c.code} ${c.title} · UT ECE Course Explorer`} description={c.description?.slice(0, 160)} active={c.number} toc={toc}>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href={`${base}#courses`}>Courses</a><span class="sep">/</span><span>{c.code}</span></nav>
+  <h1>{c.title}</h1>
+  <p class="lede">{c.code}{c.hours ? ` · ${c.hours} credit hour${String(c.hours) === '1' ? '' : 's'}` : ''}</p>
+  <div class="chips">
+    <span class={`chip ${p.cls === 'ok' ? 'ok' : p.cls === 'red' ? 'red' : 'warn'}`}>{p.label}: {p.text}</span>
+  </div>
+
+  {c.status !== 'active' && (
+    <div class="callout warn">
+      <p>
+        Not taught in the last four semesters (Fall 2025, Spring 2026, Fall 2026, Spring 2027).
+        {c.last_offered_earlier ? `It was last offered in ${c.last_offered_earlier}.` : 'No Fall or Spring offering was found back to Spring 2010.'}
+        Summer sessions are not tracked. It's in the current catalog but may no longer be taught.
+      </p>
+    </div>
+  )}
+  {c.base_number && <div class="callout"><p>{c.code} is a variable-topic number. This page covers just the “{c.title}” topic; other topics have their own pages.</p></div>}
+
+  <h2 id="overview">Overview</h2>
+  <dl class="kv">
+    <dt>Prerequisites</dt>
+    <dd>
+      {c.prerequisites_text
+        ? <>{c.prerequisites_text} <span class="muted small">(source: {c.prerequisites_source})</span></>
+        : <span class="muted">None listed in the sources available. Check the official catalog.</span>}
+      {(c.prerequisites_notes ?? []).map((n: any) => (
+        <div class="small" style="margin-top:6px;color:var(--muted)"><strong>Per {n.instructor}'s {n.term} syllabus:</strong> {n.text}</div>
+      ))}
+    </dd>
+    <dt>Description</dt><dd>{c.description || c.catalog_description || '—'}{c.description_is_generic && <span class="muted small"> (generic catalog description for the whole {c.code} number; see the syllabus for this topic)</span>}</dd>
+    {(c.also_numbers ?? []).length > 0 && (<><dt>Also numbered</dt><dd>{c.also_numbers.map((n: string) => `ECE ${n}`).join(', ')} <span class="muted small">(same course; sections and syllabi under these numbers are combined here)</span></dd></>)}
+    {c.catalog_note && (<><dt>Catalog note</dt><dd>{c.catalog_note}</dd></>)}
+    {(c.notes ?? []).length > 0 && (<><dt>Restrictions &amp; notes</dt><dd>{c.notes.map((n: string) => <div>{n}</div>)}</dd></>)}
+    {c.honors_sections && (<><dt>Honors sections</dt><dd>Some sections are designated honors sections with the same course number.</dd></>)}
+    <dt>Terms taught</dt>
+    <dd>{[...c.terms_offered, ...(c.offered_next ? ['Spring 2027 (scheduled)'] : [])].join(' · ') || '—'}</dd>
+  </dl>
+
+  {shown.length > 0 && (
+    <>
+      <h2 id="instructors">Instructors &amp; syllabi</h2>
+      <p class="muted" style="margin-top:-4px">
+        Everyone who taught this course in Fall 2025, Spring 2026 or Fall 2026, or is listed for Spring 2027, with their most recent public syllabus.
+      </p>
+    </>
+  )}
+  {shown.map((e: any) => (
+    <section class="card prof-card">
+      <div class="top">
+        <h3>{e.name}{!e.name_verified && <span class="muted small" title="The Spring 2027 listing gives only an abbreviated name"> (name from Spring 2027 listing)</span>}</h3>
+        <span class="small muted">{e.terms.join(' · ')}</span>
+      </div>
+      <p>
+        {e.syllabus_url
+          ? <>Most recent syllabus: <a href={e.syllabus_url} target="_blank" rel="noopener">{e.syllabus_term}</a>
+              {e.syllabus_is_web_only && e.pdf_url && <> · topics come from an older PDF syllabus (<a href={e.pdf_url} target="_blank" rel="noopener">{e.pdf_term}</a>)</>}
+              {e.syllabus_is_web_only && !e.pdf_url && !(e.topics && e.topics.length) && <> · web-format syllabus, topics not yet extracted</>}</>
+          : <span class="muted">{e.terms.includes('Spring 2027') ? 'No syllabus posted yet (teaching in Spring 2027).' : 'No public syllabus found for this instructor.'}</span>}
+        {e.detail_level && <> · <span class="muted">{LEVEL[e.detail_level]}</span></>}
+      </p>
+      {e.syllabus_note && <p class="small" style="color:var(--amber)">⚠ {e.syllabus_note}</p>}
+      {e.external_schedule_url && <p class="small">Detailed schedule lives on the course site: <a href={e.external_schedule_url} target="_blank" rel="noopener">{e.external_schedule_url}</a></p>}
+      {e.textbooks && e.textbooks.length > 0 && (
+        <p class="small"><strong>Textbooks:</strong>{' '}
+          {e.textbooks.map((t: any, i: number) => (<span>{i ? '; ' : ''}{t.title}{t.edition ? `, ${/ed/i.test(t.edition) ? t.edition : t.edition + ' ed.'}` : ''}{t.authors ? ` (${t.authors})` : ''} <span class="muted">[{t.status}]</span></span>))}
+        </p>
+      )}
+      {!(e.topics && e.topics.length > 0) && e.syllabus_url && !(e.syllabus_is_web_only && !e.pdf_url) && <p class="muted small">No topics extracted: the public syllabus doesn't list any. That doesn't mean the course doesn't cover them.</p>}
+    </section>
+  ))}
+
+  {m && (
+    <>
+      <h2 id="topics">{big ? 'Topics in this course' : 'Topics by instructor'}</h2>
+      <p class="muted" style="margin-top:-4px">
+        A check mark means that instructor's most recent public syllabus covers the topic. Click a check mark to see where the syllabus says so.
+        A blank cell means the syllabus doesn't list it, not necessarily that it isn't taught.
+      </p>
+      <div class="legend">
+        <span><span class="chk stated static">✓</span> stated in the syllabus</span>
+        <span><span class="chk soft static">✓</span> possible, or inferred from textbook chapters</span>
+        {!big && m.columns.length > 1 && <label class="toggle"><input type="checkbox" id="shared-only" /> Only topics at least two instructors cover</label>}
+      </div>
+      {big && (
+        <div class="topic-list">
+          {m.rows.map((r: any) => (
+            <details class="topic-item">
+              <summary><span class="t">{r.label}</span><span class="cnt">{r.n} of {m.columns.length} instructors</span></summary>
+              <ul>
+                {m.columns.map((col: any, ci: number) => r.cells[ci] && (
+                  <li>
+                    <strong>{col.name}</strong> <span class="muted small">({col.term} syllabus)</span>{r.cells[ci].kind !== 'stated' && <span class="muted small"> · {KIND_LABEL[r.cells[ci].kind]}</span>}
+                    <blockquote class="ev">{r.cells[ci].kind.startsWith('textbook') ? r.cells[ci].evidence : `“${r.cells[ci].evidence}”`}{r.cells[ci].where && <span class="small"> ({r.cells[ci].where})</span>}</blockquote>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
+      )}
+      <div class="matrix-wrap" hidden={big}>
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th class="topic-col">{m.rows.length} topics</th>
+              {m.columns.map((col: any) => (
+                <th>
+                  <div class="prof">{col.name}</div>
+                  <div class="muted small" style="font-weight:400">{col.url ? <a href={col.url} target="_blank" rel="noopener">{col.term} syllabus</a> : col.term}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {m.rows.map((r: any) => (
+              <tr data-n={r.n}>
+                <th scope="row" class="topic-col">{r.label}</th>
+                {m.columns.map((col: any, ci: number) => {
+                  const cell = r.cells[ci];
+                  return (
+                    <td>
+                      {cell && (
+                        <button type="button" class={`chk ${cell.kind === 'stated' ? 'stated' : 'soft'}`}
+                          aria-label={`${col.name} covers ${r.label}`}
+                          data-label={r.label} data-prof={col.name} data-term={col.term} data-kind={KIND_LABEL[cell.kind]}
+                          data-topic={cell.topic} data-also={cell.also.join(' | ')} data-ev={cell.evidence} data-where={cell.where}
+                          data-quote={cell.kind.startsWith('textbook') ? '0' : '1'}>✓</button>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div id="ev-panel" class="card ev-panel" hidden aria-live="polite"></div>
+      <script is:inline>
+        (function () {
+          var panel = document.getElementById('ev-panel');
+          function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+          var mx = document.querySelector('.matrix'); if (mx) mx.addEventListener('click', function (ev) {
+            var b = ev.target.closest('.chk[data-label]');
+            if (!b) return;
+            var d = b.dataset;
+            panel.replaceChildren();
+            panel.appendChild(el('strong', '', d.prof + (d.term ? ' · ' + d.term + ' syllabus' : '')));
+            panel.appendChild(el('div', 'small muted', d.kind));
+            var t = d.topic !== d.label ? 'Listed as: ' + d.topic : '';
+            if (d.also) t += (t ? '; also: ' : 'Also listed as: ') + d.also;
+            if (t) panel.appendChild(el('div', 'small', t));
+            var q = el('blockquote', 'ev', d.quote === '1' ? '“' + d.ev + '”' : d.ev);
+            if (d.where) q.appendChild(el('span', 'small', ' (' + d.where + ')'));
+            panel.appendChild(q);
+            panel.hidden = false;
+          });
+          var so = document.getElementById('shared-only');
+          if (so) so.addEventListener('change', function () {
+            document.querySelectorAll('.matrix tbody tr').forEach(function (r) { r.style.display = so.checked && +r.dataset.n < 2 ? 'none' : ''; });
+          });
+        })();
+      </script>
+    </>
+  )}
+</Docs>

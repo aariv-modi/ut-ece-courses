@@ -1,0 +1,143 @@
+---
+import Marketing from '../layouts/Marketing.astro';
+import { courses, base, href, division, DIV_LABEL, tier, isHonors, pill, stats } from '../lib/courses';
+
+// Hero preview: real rows from the compact topic table with the most topics shared by every instructor.
+const demo = [...courses].filter((c: any) => c.matrix && c.matrix.columns.length >= 2 && c.matrix.columns.length <= 4)
+  .sort((x: any, y: any) => y.matrix.rows.filter((r: any) => r.n === y.matrix.columns.length).length - x.matrix.rows.filter((r: any) => r.n === x.matrix.columns.length).length)[0];
+const dm = demo?.matrix;
+const demoRows = dm ? dm.rows.filter((r: any) => r.n === dm.columns.length).slice(0, 5) : [];
+const lastName = (n: string) => n.split(' ').slice(-1)[0];
+const fmt = (n: number) => n.toLocaleString('en-US');
+---
+<Marketing title="UT ECE Course Explorer" description="What every undergraduate UT Austin Electrical and Computer Engineering course actually teaches, from the public syllabi.">
+  <section class="hero">
+    <div class="grid">
+      <div>
+        <h1>What every UT ECE course <b>actually teaches.</b></h1>
+        <p class="sub">
+          Prerequisites, who is teaching it, and a topic-by-topic comparison of each professor's most recent public syllabus, for all{' '}
+          {stats.courses} undergraduate Electrical and Computer Engineering courses.
+        </p>
+        <div class="cta">
+          <a class="btn primary lg" href="#courses">Browse courses <span class="arr">→</span></a>
+          <a class="btn secondary lg" href={`${base}topics/`}>Search by topic</a>
+        </div>
+      </div>
+      {dm && (
+        <div class="mock" aria-hidden="true">
+          <div class="bar"><i></i><i></i><i></i><span>{demo.code} · topics by instructor</span></div>
+          <div class="body">
+            <h3>{demo.title}</h3>
+            <div class="muted small">A check mark means the professor's syllabus covers the topic.</div>
+            <table>
+              <thead><tr><th>Topic</th>{dm.columns.map((c: any) => <th>{lastName(c.name)}</th>)}</tr></thead>
+              <tbody>
+                {demoRows.map((r: any) => (
+                  <tr><td>{r.label}</td>{dm.columns.map((_: any, i: number) => <td>{r.cells[i] ? <span class="chk stated static">✓</span> : ''}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><div class="n">{stats.courses}</div><div class="l">undergraduate ECE courses</div></div>
+      <div class="stat"><div class="n">{stats.next}</div><div class="l">planned for Spring 2027</div></div>
+      <div class="stat"><div class="n">{stats.syllabi}</div><div class="l">syllabi read, one per professor</div></div>
+      <div class="stat"><div class="n">{fmt(stats.topics)}</div><div class="l">topics, each linked to its source</div></div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="wrap">
+      <h2 class="big">Everything the catalog leaves out</h2>
+      <p class="sec-sub">Course descriptions are vague and syllabi are scattered. Here is what they actually say, side by side.</p>
+      <div class="features">
+        <div class="feature"><div class="ic">≡</div><h3>Topic-level detail</h3><p>Every course lists the topics each professor's syllabus names, with the quote it came from, or the textbook chapters it assigns.</p></div>
+        <div class="feature"><div class="ic">✓</div><h3>Compare professors</h3><p>A table shows which topics each instructor covers, so you can see how the same course differs between sections.</p></div>
+        <div class="feature"><div class="ic">⌕</div><h3>Search any topic</h3><p>Looking for Fourier transforms, op-amps or pipelining? Find every course whose syllabus covers it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tint" id="courses">
+    <div class="wrap">
+      <h2 class="big">Browse all courses</h2>
+      <p class="sec-sub">Offered terms cover Fall 2025 through Spring 2027. Open the arrow on any course for its catalog description.</p>
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="Filter by course number or title…" aria-label="Filter courses" />
+        <select id="f" aria-label="Show">
+          <option value="all">All courses ({stats.courses})</option>
+          <option value="next">Offered Spring 2027 ({stats.next})</option>
+          <option value="active">Taught in the last 4 semesters ({stats.active})</option>
+          <option value="recent">Not taught in the last 4 semesters ({stats.recent})</option>
+        </select>
+      </div>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="t-honors" checked /> Honors courses
+          <span class="info" tabindex="0" role="img" aria-label="About honors courses" data-tip="Honors courses have numbers ending in H and are separate from the regular courses. Some are restricted to students in the ECE honors program, and some require higher grades in their prerequisites; check each course page.">i</span></label>
+        <label class="toggle"><input type="checkbox" id="t-retired" checked /> Retired courses
+          <span class="info" tabindex="0" role="img" aria-label="About retired courses" data-tip="Retired courses are in the current catalog but haven’t been taught in the last 8 semesters (Fall 2023 through Spring 2027, summers excluded), so they may no longer be offered.">i</span></label>
+      </div>
+      <div class="course-list" id="list">
+        {courses.map((c: any, i: number) => (
+          <>
+            {(i === 0 || division(courses[i - 1]) !== division(c)) && <div class="div-bar" data-div={division(c)}><span>{DIV_LABEL[division(c)]}</span></div>}
+            <div class="course-item" data-s={`${c.code} ${c.title}`.toLowerCase()} data-next={c.offered_next ? '1' : '0'} data-status={c.status} data-tier={tier(c)} data-honors={isHonors(c) ? '1' : '0'}>
+              <div class="course-row">
+                <button type="button" class="desc-btn" aria-expanded="false" aria-controls={`d-${c.number}`} aria-label={`Show description of ${c.code} ${c.title}`} title="Show description">▾</button>
+                <a class="course-link" href={href(c)}>
+                  <span class="code">{c.code}</span>
+                  <strong>{c.title}</strong>
+                </a>
+                <span class={`pill ${pill(c).cls}`}>{pill(c).label}: {pill(c).text}</span>
+              </div>
+              <p class="desc" id={`d-${c.number}`} hidden>
+                {c.description || c.catalog_description || '—'}
+                {c.description_is_generic && <span class="muted"> (generic catalog description for the whole {c.code} number; see the syllabus for this topic)</span>}
+              </p>
+            </div>
+          </>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    const q = document.getElementById('q'), f = document.getElementById('f'), tR = document.getElementById('t-retired'), tH = document.getElementById('t-honors');
+    const items = [...document.querySelectorAll('#list .course-item')];
+    function apply() {
+      const t = q.value.trim().toLowerCase(), m = f.value;
+      for (const el of items) {
+        let ok = !t || el.dataset.s.includes(t);
+        if (m === 'next') ok = ok && el.dataset.next === '1';
+        if (m === 'active') ok = ok && el.dataset.status === 'active';
+        if (m === 'recent') ok = ok && el.dataset.tier === 'recent';
+        if (!tH.checked && el.dataset.honors === '1') ok = false;
+        if (!tR.checked && el.dataset.tier === 'retired') ok = false;
+        el.style.display = ok ? '' : 'none';
+      }
+      // show a division bar only if a visible course follows it (before the next bar)
+      for (const bar of document.querySelectorAll('#list .div-bar')) {
+        let n = bar.nextElementSibling, any = false;
+        while (n && !n.classList.contains('div-bar')) { if (n.style.display !== 'none') { any = true; break; } n = n.nextElementSibling; }
+        bar.style.display = any ? '' : 'none';
+      }
+    }
+    q.addEventListener('input', apply); f.addEventListener('change', apply); tR.addEventListener('change', apply); tH.addEventListener('change', apply);
+    document.getElementById('list').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.desc-btn');
+      if (!btn) return;
+      const panel = document.getElementById(btn.getAttribute('aria-controls'));
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      btn.title = open ? 'Show description' : 'Hide description';
+      panel.hidden = open;
+    });
+  </script>
+</Marketing>

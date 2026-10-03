@@ -1,0 +1,50 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import { base, generated } from '../../lib/courses';
+const toc = [
+  { id: 'sources', label: 'Where the data comes from' },
+  { id: 'window', label: 'Window and rules' },
+  { id: 'offered', label: 'What counts as “offered”' },
+  { id: 'numbers', label: 'Course numbers' },
+  { id: 'labels', label: 'How to read topic labels' },
+];
+---
+<Docs title="About & sources · UT ECE Course Explorer" description="Where the data comes from and how to read it." active="about" toc={toc}>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href={base}>Home</a><span class="sep">/</span><span>About &amp; sources</span></nav>
+  <h1>About &amp; sources</h1>
+  <p class="lede">Everything here is compiled from public University of Texas at Austin pages. Every topic links back to the text it came from.</p>
+
+  <h2 id="sources">Where the data comes from</h2>
+  <ul>
+    <li><strong>Course list:</strong> the UT catalog A–Z page for Electrical and Computer Engineering (ECE), 2026-27. Only undergraduate courses are listed (course numbers whose last two digits are below 80).</li>
+    <li><strong>Prerequisites, restrictions and which terms a course was scheduled:</strong> the UT Registrar course schedule. Where the registrar has no text, the 2025-26 catalog is used and labeled as such.</li>
+    <li><strong>Who taught what, and syllabi:</strong> UT's public <a href="https://utdirect.utexas.edu/apps/student/coursedocs/nlogon/">Syllabi &amp; CVs</a> repository (published under Texas Education Code §51.974). Some newer syllabi are web pages instead of PDFs; they are used the same way.</li>
+    <li><strong>Spring 2027 instructors:</strong> the Registrar schedule. The schedule can change.</li>
+  </ul>
+
+  <h2 id="window">Window and rules</h2>
+  <p>Terms covered: Fall 2025, Spring 2026, Fall 2026 and the upcoming Spring 2027. Summer terms are never included. Only courses in the current catalog are listed.
+    A course that wasn't taught in any of these four terms shows the most recent earlier Fall or Spring term the Registrar scheduled it (searched back to Spring 2010, including the older “E E” prefix), or says no offering was found.</p>
+
+  <h2 id="offered">What counts as “offered”</h2>
+  <p>A course counts as offered in a semester if a public syllabus exists for it, or if the Registrar schedule shows at least one section that was not cancelled.
+    A section whose professor posted a syllabus is counted even if the Registrar later marked it cancelled. Spring 2027 comes only from the Registrar,
+    so it is the <em>planned</em> schedule and a section may still change or be cancelled.</p>
+
+  <h2 id="numbers">Course numbers</h2>
+  <ul>
+    <li><strong>3-hour and 4-hour versions</strong> of the same course (for example ECE 302 and ECE 402, or 312 and 412) are shown as one course, with the other number listed as an alternate. Their sections, instructors and syllabi are combined.</li>
+    <li><strong>Variable-hour numbers</strong> such as ECE 160/260/360/460 (special problems) and ECE 179K/379K/479K (topics) are shown under one number.</li>
+    <li><strong>ECE 379K</strong> is a variable-topic number, so every distinct topic has its own page, with its own offered terms, instructors and topics.</li>
+    <li><strong>ECE 679HA/679HB</strong> (the two-semester honors thesis) is shown as ECE 679H.</li>
+    <li><strong>Honors courses</strong> (numbers ending in H) are separate courses from the regular ones.</li>
+  </ul>
+
+  <h2 id="labels">How to read topic labels</h2>
+  <ul>
+    <li><span class="tag explicit" style="margin-left:0">stated</span> the syllabus itself names the topic (with the quoted text).</li>
+    <li><span class="tag derived" style="margin-left:0">from textbook</span> the syllabus only cites textbook chapters, so topics come from that book's table of contents.</li>
+    <li>No topic found means the public syllabus doesn't list it. Instructors often keep detailed schedules on Canvas, which isn't public.</li>
+  </ul>
+  <p class="muted small">Data last refreshed {generated}.</p>
+</Docs>

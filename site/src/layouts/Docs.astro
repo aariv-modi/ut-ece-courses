@@ -1,0 +1,69 @@
+---
+import Base from './Base.astro';
+import HeaderSearch from '../components/HeaderSearch.astro';
+import Footer from '../components/Footer.astro';
+import { courses, base, href, division, DIV_LABEL, tier } from '../lib/courses';
+const { title, description, active = '', toc = [] } = Astro.props;
+const groups = (['lower', 'upper'] as const).map((d) => ({ d, items: courses.filter((c: any) => division(c) === d) }));
+---
+<Base title={title} description={description}>
+  <header class="site-header">
+    <div class="inner">
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="sidebar">☰ Menu</button>
+      <a class="brand" href={base}><span class="mark">ECE</span><span class="name">UT ECE Course Explorer</span></a>
+      <nav class="top-links" aria-label="Primary">
+        <a href={`${base}#courses`}>Courses</a>
+        <a href={`${base}topics/`} aria-current={active === 'topics' ? 'page' : undefined}>Search by topic</a>
+        <a href={`${base}about/`} aria-current={active === 'about' ? 'page' : undefined}>About</a>
+      </nav>
+      <span class="spacer"></span>
+      <HeaderSearch />
+    </div>
+  </header>
+  <div class={`docs${toc.length ? ' has-toc' : ''}`}>
+    <aside class="sidebar" id="sidebar" aria-label="Course navigation">
+      <h4>Explore</h4>
+      <a class="top" href={`${base}#courses`}>All courses</a>
+      <a class="top" href={`${base}topics/`} aria-current={active === 'topics' ? 'page' : undefined}>Search by topic</a>
+      <a class="top" href={`${base}about/`} aria-current={active === 'about' ? 'page' : undefined}>About &amp; sources</a>
+      {groups.map((g) => (
+        <>
+          <h4>{DIV_LABEL[g.d]}</h4>
+          {g.items.map((c: any) => (
+            <a href={href(c)} class={tier(c) === 'active' ? '' : 'dim'} aria-current={active === c.number ? 'page' : undefined}>
+              <span class="cnum">{c.code.replace('ECE ', '')}</span>{c.title}
+            </a>
+          ))}
+        </>
+      ))}
+    </aside>
+    <main class="article" id="main">
+      <div class="article-inner">
+        <slot />
+        <Footer compact />
+      </div>
+    </main>
+    {toc.length > 0 && (
+      <nav class="toc" aria-label="On this page">
+        <h4>On this page</h4>
+        {toc.map((t: any) => <a href={`#${t.id}`} data-toc={t.id}>{t.label}</a>)}
+      </nav>
+    )}
+  </div>
+  <script is:inline>
+    (function () {
+      var b = document.getElementById('menu-btn');
+      b.addEventListener('click', function () { var o = document.body.classList.toggle('nav-open'); b.setAttribute('aria-expanded', String(o)); });
+      document.getElementById('sidebar').addEventListener('click', function (e) { if (e.target.closest('a')) document.body.classList.remove('nav-open'); });
+      var cur = document.querySelector('.sidebar a[aria-current]'); if (cur) cur.scrollIntoView({ block: 'center' });
+      var links = [].slice.call(document.querySelectorAll('.toc a[data-toc]'));
+      if (links.length && 'IntersectionObserver' in window) {
+        var map = {}; links.forEach(function (a) { map[a.dataset.toc] = a; });
+        var io = new IntersectionObserver(function (es) {
+          es.forEach(function (e) { if (e.isIntersecting) { links.forEach(function (a) { a.classList.remove('on'); }); map[e.target.id].classList.add('on'); } });
+        }, { rootMargin: '-80px 0px -65% 0px' });
+        links.forEach(function (a) { var h = document.getElementById(a.dataset.toc); if (h) io.observe(h); });
+      }
+    })();
+  </script>
+</Base>
